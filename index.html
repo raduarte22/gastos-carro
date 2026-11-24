@@ -64,6 +64,16 @@ input:focus{border-color:var(--cy);box-shadow:0 0 0 3px rgba(34,211,238,.15)}
 .bar i{display:block;width:100%;border-radius:10px 10px 4px 4px;background:linear-gradient(180deg,var(--cy),rgba(167,139,250,.3));min-height:3px}
 .bar.on{color:var(--txt)}
 .bar.on i{box-shadow:0 0 18px -2px var(--cy)}
+.sbars{display:flex;gap:10px;height:190px;margin-top:8px}
+.scol{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;font-size:11px;color:var(--mut)}
+.scol.on{color:var(--txt)}
+.slab{font-size:10px;white-space:nowrap;height:14px}
+.half{flex:1;width:100%;display:flex;flex-direction:column;min-height:0}
+.half.top{border-bottom:1px dashed var(--line)}
+.pos,.neg{width:100%;border-radius:8px;display:block;min-height:2px}
+.pos{margin-top:auto;background:linear-gradient(180deg,var(--gr),rgba(52,211,153,.25))}
+.neg{margin-bottom:auto;background:linear-gradient(0deg,var(--rd),rgba(251,113,133,.25))}
+.scol small{margin-top:4px;height:14px}
 .tabbar{position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:6px;border-radius:24px;background:rgba(15,22,42,.78);border:1px solid var(--line);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);z-index:6;max-width:536px;margin:0 auto;box-shadow:0 20px 50px -20px #000}
 .tabbar button{border:0;background:none;color:var(--mut);font:inherit;font-size:11px;padding:8px 0;border-radius:18px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
 .tabbar button.on{color:var(--cy);background:rgba(34,211,238,.1)}
@@ -253,7 +263,18 @@ function tabRes(v) {
   const bars = `<div class="glass"><div class="kv">Gasto nos últimos 6 meses</div><div class="bars">${ms.map((m, i) =>
     `<div class="bar ${m === ui.mes ? 'on' : ''}"><span>${Math.round(vals[i])}€</span><i style="height:${Math.max(vals[i] / max * 100, 2)}%"></i>${mesCurto(m)}</div>`).join('')}</div></div>`;
   const nota = `<p class="mut" style="margin:4px 6px 0">Poupança = km do mês × consumo de referência × preço médio do combustível desse mês − gasto real. Em veículos a combustão, o consumo usado é o medido nos abastecimentos.</p>`;
-  return hero + tiles + det + bars + nota;
+  const pous = ms.map(m => { const r = calcMes(v.id, m); return r.km ? r.pou : null; });
+  const pMax = Math.max(...pous.map(p => Math.abs(p ?? 0)), 1);
+  const sbars = `<div class="glass" style="margin-top:14px"><div class="kv">Poupança nos últimos 6 meses</div>
+    <div class="sbars">${ms.map((m, i) => {
+      const p = pous[i], h = p == null ? 0 : Math.max(Math.abs(p) / pMax * 100, 2);
+      return `<div class="scol ${m === ui.mes ? 'on' : ''}">
+        <span class="slab">${p == null ? '—' : (p >= 0 ? '+' : '') + Math.round(p) + '€'}</span>
+        <div class="half top">${p != null && p >= 0 ? `<i class="pos" style="height:${h}%"></i>` : ''}</div>
+        <div class="half">${p != null && p < 0 ? `<i class="neg" style="height:${h}%"></i>` : ''}</div>
+        <small>${mesCurto(m)}</small></div>`;
+    }).join('')}</div></div>`;
+  return hero + tiles + det + bars + sbars + nota;
 }
 
 function tabKm(v) {
