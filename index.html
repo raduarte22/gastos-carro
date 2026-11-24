@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Garagem">
+<meta name="theme-color" content="#070b16">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Garagem</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{--bg:#070b16;--bg2:#0d1530;--glass:rgba(255,255,255,.055);--line:rgba(255,255,255,.1);--txt:#e8edff;--mut:#8b97b8;--cy:#22d3ee;--vi:#a78bfa;--gr:#34d399;--rd:#fb7185;--am:#fbbf24}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{margin:0;min-height:100vh;color:var(--txt);font:16px/1.4 -apple-system,system-ui,"SF Pro Text",sans-serif;-webkit-font-smoothing:antialiased;background:radial-gradient(circle at 0% 0%,rgba(99,102,241,.28),transparent 45%),radial-gradient(circle at 100% 12%,rgba(34,211,238,.16),transparent 40%),linear-gradient(170deg,var(--bg),var(--bg2) 70%);background-color:var(--bg);padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+.hidden{display:none!important}
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;padding:calc(env(safe-area-inset-top) + 14px) 16px 12px;background:rgba(7,11,22,.72);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+.grow{flex:1;min-width:0}
+.top h1{margin:0;font-size:20px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--cy)}
+.wrap{max-width:560px;margin:0 auto;padding:16px}
+.glass{background:var(--glass);border:1px solid var(--line);border-radius:22px;padding:16px;margin-bottom:14px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 10px 40px -20px rgba(0,0,0,.6)}
+.mut{color:var(--mut);font-size:13px}
+.kv{font-size:13px;color:var(--mut)}
+.big{font-size:30px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.good{color:var(--gr)}.bad{color:var(--rd)}
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ibtn{width:40px;height:40px;border-radius:14px;border:1px solid var(--line);background:var(--glass);color:var(--txt);display:grid;place-items:center;padding:0;cursor:pointer}
+.ibtn.sm{width:34px;height:34px;border-radius:11px}
+.hero{background:linear-gradient(135deg,rgba(34,211,238,.18),rgba(167,139,250,.16))}
+.vgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.vcard{position:relative;cursor:pointer;--c:var(--cy);overflow:hidden;display:flex;flex-direction:column;gap:6px;min-height:196px;margin-bottom:0}
+.vcard::before{content:"";position:absolute;inset:-40% -20% auto auto;width:150px;height:150px;background:radial-gradient(circle,var(--c),transparent 70%);opacity:.22;pointer-events:none}
+.vicon{width:58px;height:58px;border-radius:18px;display:grid;place-items:center;color:var(--c);background:rgba(255,255,255,.05);border:1px solid var(--line);box-shadow:0 0 28px -8px var(--c);margin-bottom:8px}
+.vicon .ic{width:28px;height:28px}
+.vnome{font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{align-self:flex-start;font-size:11px;padding:3px 9px;border-radius:99px;border:1px solid var(--c);color:var(--c)}
+.vmes{margin-top:auto;font-weight:700;font-size:18px;font-variant-numeric:tabular-nums}
+.vedit{position:absolute;top:12px;right:12px}
+.vadd{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:1px dashed rgba(34,211,238,.5);border-radius:22px;background:rgba(34,211,238,.05);color:var(--cy);min-height:196px;font:inherit;font-weight:600;cursor:pointer}
+.plusc{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--cy),var(--vi));color:#06111f;box-shadow:0 0 30px -4px var(--cy)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:16px;padding:12px}
+.tile .big{font-size:20px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.row:last-child{border-bottom:0}
+label{display:block;font-size:13px;color:var(--mut);margin:14px 0 6px}
+input{width:100%;font:inherit;font-size:16px;padding:13px 14px;min-height:48px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--txt);outline:none;-webkit-appearance:none;appearance:none}
+input:focus{border-color:var(--cy);box-shadow:0 0 0 3px rgba(34,211,238,.15)}
+.seg{display:flex;gap:6px;padding:5px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid var(--line);margin-bottom:4px}
+.seg button{flex:1;border:0;border-radius:11px;padding:11px 6px;background:none;color:var(--mut);font:inherit;font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}
+.seg button.on{background:linear-gradient(135deg,rgba(34,211,238,.25),rgba(167,139,250,.25));color:var(--txt);box-shadow:inset 0 0 0 1px rgba(34,211,238,.45)}
+.btn{width:100%;border:0;border-radius:16px;padding:15px;font:inherit;font-weight:700;font-size:16px;background:linear-gradient(135deg,var(--cy),var(--vi));color:#06111f;margin-top:16px;box-shadow:0 10px 30px -10px var(--cy);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn.ghost{background:rgba(255,255,255,.06);color:var(--txt);box-shadow:none;border:1px solid var(--line)}
+.btn.danger{background:rgba(251,113,133,.12);color:var(--rd);box-shadow:none;border:1px solid rgba(251,113,133,.35)}
+.mesbar{display:flex;align-items:center;justify-content:space-between;padding:8px 10px}
+.mesnome{font-weight:700;text-transform:capitalize}
+.bars{display:flex;align-items:flex-end;gap:10px;height:150px;padding-top:8px}
+.bar{flex:1;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px;font-size:11px;color:var(--mut)}
+.bar span{font-size:10px;white-space:nowrap}
+.bar i{display:block;width:100%;border-radius:10px 10px 4px 4px;background:linear-gradient(180deg,var(--cy),rgba(167,139,250,.3));min-height:3px}
+.bar.on{color:var(--txt)}
+.bar.on i{box-shadow:0 0 18px -2px var(--cy)}
+.tabbar{position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:6px;border-radius:24px;background:rgba(15,22,42,.78);border:1px solid var(--line);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);z-index:6;max-width:536px;margin:0 auto;box-shadow:0 20px 50px -20px #000}
+.tabbar button{border:0;background:none;color:var(--mut);font:inherit;font-size:11px;padding:8px 0;border-radius:18px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.tabbar button.on{color:var(--cy);background:rgba(34,211,238,.1)}
+.hmonth{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--cy);margin:18px 4px 8px}
+.hist-item{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.hist-item:last-child{border-bottom:0}
+.hi-ic{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--c)}
+.notice{display:flex;gap:10px;align-items:flex-start;border:1px solid rgba(251,191,36,.35);background:rgba(251,191,36,.07);border-radius:16px;padding:12px;font-size:14px;margin-bottom:14px}
+.notice .ic{color:var(--am)}
+.hint{font-size:12px;color:var(--mut);margin-top:6px;line-height:1.4}
+.empty{text-align:center;padding:24px 8px;color:var(--mut)}
+.sheet{position:fixed;inset:0;background:rgba(3,6,15,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;z-index:10}
+.sheet-card{width:100%;max-width:560px;max-height:92vh;overflow:auto;background:linear-gradient(180deg,#121a33,#0b1124);border:1px solid var(--line);border-radius:28px 28px 0 0;padding:20px 18px calc(22px + env(safe-area-inset-bottom));animation:up .3s ease}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+.sheet-card h2{margin:0;font-size:20px}
+.swatches{display:flex;gap:12px;margin-top:6px}
+.sw{width:36px;height:36px;border-radius:50%;border:2px solid transparent;background:var(--sc);cursor:pointer;box-shadow:0 0 16px -4px var(--sc);padding:0}
+.sw.on{border-color:#fff}
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 16px);transform:translateX(-50%) translateY(-150%);background:rgba(15,22,42,.95);border:1px solid var(--cy);padding:10px 16px;border-radius:14px;z-index:20;transition:transform .3s;font-size:14px;box-shadow:0 0 30px -6px var(--cy);white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-car" viewBox="0 0 24 24"><path d="M3 13.5V17h18v-3.5l-2-5.5H5z"/><circle cx="7" cy="17" r="1.8"/><circle cx="17" cy="17" r="1.8"/></symbol>
+<symbol id="i-pump" viewBox="0 0 24 24"><path d="M4 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16"/><path d="M3 21h13"/><path d="M15 9h1.5a2 2 0 0 1 2 2v6a1.5 1.5 0 0 0 3 0V8l-2.5-2.5"/><path d="M7 7h5"/></symbol>
+<symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+<symbol id="i-gauge" viewBox="0 0 24 24"><path d="M4 16a8 8 0 1 1 16 0"/><path d="M12 16l4-5"/><circle cx="12" cy="16" r="1.2"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15v3M12 10v8M17 6v12"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+<symbol id="i-cog" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></symbol>
+<symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></symbol>
+</defs></svg>
+
+<div id="app"></div>
+<div id="sheet" class="sheet hidden"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+const DB = 'garagem.v2', OLD = 'gastos.v1', OLDS = 'gastos.settings.v1', PRECO_DEF = 1.65;
+const TIPOS = {comb:'Combustão', elet:'Elétrico', hib:'Híbrido'};
+const CORES = ['#22d3ee','#a78bfa','#34d399','#fbbf24','#fb7185'];
+
+const $ = s => document.querySelector(s);
+const $v = id => document.getElementById(id).value;
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const sum = (a, k) => a.reduce((s, x) => s + (+x[k] || 0), 0);
+const eur = v => new Intl.NumberFormat('pt-PT', {style:'currency', currency:'EUR'}).format(v || 0);
+const n = (v, d = 2) => (+v || 0).toLocaleString('pt-PT', {minimumFractionDigits: d, maximumFractionDigits: d});
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hoje = () => { const d = new Date(), p = x => String(x).padStart(2, '0');
+  return {data: `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`, hora: `${p(d.getHours())}:${p(d.getMinutes())}`}; };
+const mesAtual = () => hoje().data.slice(0, 7);
+const addMes = (m, d) => { const [y, mo] = m.split('-').map(Number); const x = new Date(y, mo - 1 + d, 1);
+  return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`; };
+const mesNome = m => new Date(m + '-01T12:00').toLocaleDateString('pt-PT', {month:'long', year:'numeric'});
+const mesCurto = m => new Date(m + '-01T12:00').toLocaleDateString('pt-PT', {month:'short'});
+const ic = (id, cls = '') => `<svg class="ic ${cls}"><use href="#${id}"/></svg>`;
+
+/* ---------- dados ---------- */
+function load() {
+  try { const d = JSON.parse(localStorage.getItem(DB)); if (d && d.veiculos) return d; } catch (e) {}
+  const d = {veiculos: [], registos: [], kms: [], precoDef: PRECO_DEF};
+  try { // migração da versão anterior
+    const old = JSON.parse(localStorage.getItem(OLD)) || [];
+    const s = JSON.parse(localStorage.getItem(OLDS)) || {};
+    if (s.precoComb) d.precoDef = s.precoComb;
+    if (old.length) {
+      const v = {id: uid(), nome: 'O meu carro', marca: '', tipo: old.some(e => e.tipo === 'elet') ? 'hib' : 'comb', consRef: s.consRef || 6.5, cor: CORES[0]};
+      d.veiculos.push(v);
+      d.registos = old.map(e => ({id: e.id, vid: v.id, tipo: e.tipo, dt: e.dt, local: e.local || '', valor: e.valor, qtd: e.qtd, notas: e.notas || ''}));
+    }
+  } catch (e) {}
+  return d;
+}
+function save() { try { localStorage.setItem(DB, JSON.stringify(db)); } catch (e) { toast('Não foi possível guardar'); } scheduleSync(); }
+
+let db = load();
+const ui = {view: 'home', vid: null, tab: 'res', mes: mesAtual(), editReg: null, tipoReg: null, sheet: null};
+
+const veic = id => db.veiculos.find(v => v.id === id);
+function precoMedio(vid) {
+  const c = db.registos.filter(r => r.vid === vid && r.tipo === 'comb'), L = sum(c, 'qtd');
+  return L > 0 ? sum(c, 'valor') / L : db.precoDef;
+}
+function kmAnterior(vid, mes) {
+  const k = db.kms.filter(x => x.vid === vid && x.mes < mes && x.fim != null).sort((a, b) => b.mes.localeCompare(a.mes))[0];
+  return k ? k.fim : null;
+}
+// Cálculo mensal
+function calcMes(vid, mes) {
+  const v = veic(vid);
+  const regs = db.registos.filter(r => r.vid === vid && r.dt.startsWith(mes));
+  const cb = regs.filter(r => r.tipo === 'comb'), el = regs.filter(r => r.tipo === 'elet');
+  const gComb = sum(cb, 'valor'), lit = sum(cb, 'qtd'), gEl = sum(el, 'valor'), kwh = sum(el, 'qtd');
+  const tot = gComb + gEl;
+  const k = db.kms.find(x => x.vid === vid && x.mes === mes);
+  const km = (k && k.ini != null && k.fim != null) ? k.fim - k.ini : null;
+  const precoM = lit > 0 ? gComb / lit : precoMedio(vid);            // média do mês (€ total / L total)
+  const consComb = (km && lit > 0) ? lit / km * 100 : null;           // L/100 km medido no mês
+  const consElet = (km && kwh > 0) ? kwh / km * 100 : null;           // kWh/100 km medido no mês
+  const consUsado = consComb ?? v.consRef;                            // o que entra no cálculo hipotético
+  const eq = km != null ? km * consUsado / 100 * precoM : null;       // custo se tudo fosse combustível
+  const pou = eq != null ? eq - tot : null;
+  return {regs, gComb, lit, gEl, kwh, tot, k, km, precoM, consComb, consElet, consUsado, eq, pou, custoKm: km ? tot / km : null};
+}
+
+/* ---------- ecrãs ---------- */
+function render() {
+  $('#app').innerHTML = (ui.view === 'home' || !veic(ui.vid)) ? viewHome() : viewVeic();
+  if (ui.view === 'veh' && ui.tab === 'reg') updPrev();
+}
+
+function viewHome() {
+  ui.view = 'home';
+  const mes = mesAtual();
+  const tot = db.veiculos.reduce((s, v) => s + calcMes(v.id, mes).tot, 0);
+  const cards = db.veiculos.map(v => {
+    const c = calcMes(v.id, mes);
+    return `<div class="glass vcard" data-open="${v.id}" style="--c:${v.cor}">
+      <button class="ibtn sm vedit" data-edit-veh="${v.id}" aria-label="Editar veículo">${ic('i-edit')}</button>
+      <div class="vicon">${ic(v.tipo === 'elet' ? 'i-bolt' : 'i-car')}</div>
+      <div class="vnome">${esc(v.nome)}</div>
+      <div class="mut">${esc(v.marca) || '&nbsp;'}</div>
+      <span class="badge">${TIPOS[v.tipo]}</span>
+      <div class="vmes">${eur(c.tot)}<div class="mut" style="font-weight:400">gasto em ${mesCurto(mes)}</div></div>
+    </div>`;
+  }).join('');
+  return `<header class="top"><div class="grow"><div class="eyebrow">Bem-vindo</div><h1>A tua garagem</h1></div>
+    <button class="ibtn" data-a="backup" aria-label="Definições">${ic('i-cog')}</button></header>
+  <div class="wrap">
+    <div class="glass hero"><div class="kv">Gasto total este mês</div><div class="big">${eur(tot)}</div>
+      <div class="mut">${db.veiculos.length} veículo(s)</div></div>
+    <div class="vgrid">${cards}
+      <button class="vadd" data-a="novo-veic"><span class="plusc">${ic('i-plus')}</span>Adicionar veículo</button>
+    </div>
+    ${db.veiculos.length ? '' : '<div class="empty" style="margin-top:24px">Começa por adicionar o teu primeiro veículo.</div>'}
+  </div>`;
+}
+
+function viewVeic() {
+  const v = veic(ui.vid);
+  const head = `<header class="top">
+    <button class="ibtn" data-a="home" aria-label="Voltar">${ic('i-back')}</button>
+    <div class="grow"><div class="eyebrow">${TIPOS[v.tipo]}${v.marca ? ' · ' + esc(v.marca) : ''}</div><h1>${esc(v.nome)}</h1></div>
+    <button class="ibtn" data-a="edit-veh-cur" aria-label="Editar veículo">${ic('i-edit')}</button></header>`;
+  const tabs = [['reg', 'i-plus', 'Registar'], ['hist', 'i-list', 'Histórico'], ['km', 'i-gauge', 'Km'], ['res', 'i-chart', 'Resumo']];
+  const nav = `<nav class="tabbar">${tabs.map(([k, i, l]) => `<button data-tab="${k}" class="${ui.tab === k ? 'on' : ''}">${ic(i)}${l}</button>`).join('')}</nav>`;
+  const mesbar = (ui.tab === 'km' || ui.tab === 'res') ? `<div class="glass mesbar">
+      <button class="ibtn sm" data-a="mes-prev" aria-label="Mês anterior">${ic('i-back')}</button>
+      <div class="mesnome">${mesNome(ui.mes)}</div>
+      <button class="ibtn sm" data-a="mes-next" aria-label="Mês seguinte" style="transform:scaleX(-1)">${ic('i-back')}</button></div>` : '';
+  const body = {reg: tabReg, hist: tabHist, km: tabKm, res: tabRes}[ui.tab](v);
+  return head + `<div class="wrap">${mesbar}${body}</div>` + nav;
+}
+
+/* ---------- separadores ---------- */
+function tabRes(v) {
+  const c = calcMes(v.id, ui.mes), semKm = c.km == null;
+  const hero = semKm
+    ? `<div class="notice">${ic('i-gauge')}<div>Falta o <b>km</b> deste mês. Vai ao separador <b>Km</b> e introduz o início e o fim do mês para ver consumo e poupança.</div></div>`
+    : `<div class="glass hero"><div class="kv">Poupança do mês</div>
+        <div class="big ${c.pou >= 0 ? 'good' : 'bad'}">${c.pou >= 0 ? '+' : ''}${eur(c.pou)}</div>
+        <div class="mut">Se os ${n(c.km, 0)} km fossem todos a combustível, pagavas ${eur(c.eq)}. Gastaste ${eur(c.tot)}.</div></div>`;
+  const consTxt = c.consComb != null ? `${n(c.consComb, 1)} L/100 km` : c.consElet != null ? `${n(c.consElet, 1)} kWh/100 km` : '—';
+  const tiles = `<div class="grid2">
+    <div class="tile"><div class="kv">Gasto total</div><div class="big">${eur(c.tot)}</div></div>
+    <div class="tile"><div class="kv">Km percorridos</div><div class="big">${semKm ? '—' : n(c.km, 0) + ' km'}</div></div>
+    <div class="tile"><div class="kv">⛽ Combustível</div><div style="font-weight:700">${eur(c.gComb)}</div><div class="mut">${n(c.lit)} L</div></div>
+    <div class="tile"><div class="kv">⚡ Elétrico</div><div style="font-weight:700">${eur(c.gEl)}</div><div class="mut">${n(c.kwh)} kWh</div></div>
+    <div class="tile"><div class="kv">Consumo médio</div><div style="font-weight:700">${consTxt}</div></div>
+    <div class="tile"><div class="kv">Custo por km</div><div style="font-weight:700">${semKm ? '—' : n(c.custoKm, 3) + ' €'}</div></div>
+  </div>`;
+  const det = `<div class="glass" style="margin-top:14px">
+    <div class="row"><span>Preço médio do combustível (mês)</span><b>${n(c.precoM, 3)} €/L</b></div>
+    <div class="row"><span>Consumo usado no cálculo</span><b>${n(c.consUsado, 1)} L/100 km${c.consComb == null ? ' (ref.)' : ''}</b></div>
+    <div class="row"><span>Se fosse tudo combustível</span><b>${c.eq == null ? '—' : eur(c.eq)}</b></div>
+  </div>`;
+  const ms = [-5, -4, -3, -2, -1, 0].map(d => addMes(ui.mes, d));
+  const vals = ms.map(m => calcMes(v.id, m).tot), max = Math.max(...vals, 1);
+  const bars = `<div class="glass"><div class="kv">Gasto nos últimos 6 meses</div><div class="bars">${ms.map((m, i) =>
+    `<div class="bar ${m === ui.mes ? 'on' : ''}"><span>${Math.round(vals[i])}€</span><i style="height:${Math.max(vals[i] / max * 100, 2)}%"></i>${mesCurto(m)}</div>`).join('')}</div></div>`;
+  const nota = `<p class="mut" style="margin:4px 6px 0">Poupança = km × consumo médio × preço médio do combustível do mês − gasto real. Sem abastecimentos no mês, usa o consumo de referência e o preço histórico do veículo.</p>`;
+  return hero + tiles + det + bars + nota;
+}
+
+function tabKm(v) {
+  const k = ui.mes && db.kms.find(x => x.vid === v.id && x.mes === ui.mes);
+  const ant = kmAnterior(v.id, ui.mes);
+  const c = calcMes(v.id, ui.mes);
+  const hist = db.kms.filter(x => x.vid === v.id).sort((a, b) => b.mes.localeCompare(a.mes));
+  const consTxt = c.consComb != null ? `${n(c.consComb, 1)} L/100 km` : c.consElet != null ? `${n(c.consElet, 1)} kWh/100 km` : 'sem abastecimentos';
+  return `<div class="glass">
+    <div class="eyebrow">Odómetro</div>
+    <h3 style="margin:2px 0 0;font-size:18px">Leituras de ${mesNome(ui.mes)}</h3>
+    <label>Km no início do mês</label>
+    <input id="f-kini" type="number" inputmode="numeric" min="0" step="1" value="${k?.ini ?? ''}" placeholder="${ant != null ? ant : 'ex: 45230'}">
+    ${(ant != null && k?.ini == null) ? `<div class="hint">Sugestão: fim do mês anterior = ${n(ant, 0)} km</div>` : ''}
+    <label>Km no fim do mês</label>
+    <input id="f-kfim" type="number" inputmode="numeric" min="0" step="1" value="${k?.fim ?? ''}" placeholder="ex: 45980">
+    <button class="btn" data-a="save-km">Guardar leituras</button>
+    ${c.km != null ? `<div style="margin-top:14px">
+      <div class="row"><span>Percorreste</span><b>${n(c.km, 0)} km</b></div>
+      <div class="row"><span>Consumo médio</span><b>${consTxt}</b></div>
+      <div class="row"><span>Gasto do mês</span><b>${eur(c.tot)}</b></div></div>` : ''}
+  </div>
+  <div class="glass"><div class="kv" style="margin-bottom:4px">Histórico de leituras</div>
+    ${hist.length ? hist.map(x => `<div class="row"><span style="text-transform:capitalize">${mesNome(x.mes)}</span>
+      <b>${x.ini ?? '—'} → ${x.fim ?? '—'}${(x.ini != null && x.fim != null) ? ` · ${n(x.fim - x.ini, 0)} km` : ''}</b></div>`).join('')
+      : '<div class="empty">Sem leituras ainda.</div>'}
+  </div>`;
+}
+
+function tabReg(v) {
+  const e = ui.editReg ? db.registos.find(r => r.id === ui.editReg) : null;
+  const tipos = v.tipo === 'hib' ? ['comb', 'elet'] : [v.tipo === 'elet' ? 'elet' : 'comb'];
+  const tipo = e ? e.tipo : (ui.tipoReg && tipos.includes(ui.tipoReg) ? ui.tipoReg : tipos[0]);
+  const locais = [...new Set(db.registos.filter(r => r.vid === v.id).map(r => r.local).filter(Boolean))];
+  const d = e ? e.dt.slice(0, 10) : hoje().data, h = e ? e.dt.slice(11, 16) : hoje().hora;
+  const btns = tipos.map(t => `<button type="button" data-tipo="${t}" class="${t === tipo ? 'on' : ''}">${ic(t === 'comb' ? 'i-pump' : 'i-bolt')}${t === 'comb' ? 'Combustível' : 'Elétrico'}</button>`).join('');
+  return `<div class="glass">
+    <div class="eyebrow">${e ? 'Editar registo' : 'Novo registo'}</div>
+    <h3 style="margin:2px 0 12px;font-size:18px">${e ? 'Alterar abastecimento' : 'Abastecimento / carregamento'}</h3>
+    ${tipos.length > 1 ? `<div class="seg">${btns}</div>` : ''}
+    <input type="hidden" id="f-tipo" value="${tipo}">
+    <div class="grid2"><div><label>Data</label><input id="f-data" type="date" value="${d}"></div>
+      <div><label>Hora</label><input id="f-hora" type="time" value="${h}"></div></div>
+    <label>Onde</label>
+    <input id="f-local" list="locais" value="${esc(e?.local)}" placeholder="ex: Galp, Aveiro" autocomplete="off">
+    <datalist id="locais">${locais.map(l => `<option value="${esc(l)}">`).join('')}</datalist>
+    <div class="grid2">
+      <div><label>Valor pago (€)</label><input id="f-valor" type="number" step="0.01" min="0" inputmode="decimal" value="${e?.valor ?? ''}"></div>
+      <div><label id="l-qtd">${tipo === 'comb' ? 'Litros' : 'kWh'}</label><input id="f-qtd" type="number" step="0.01" min="0" inputmode="decimal" value="${e?.qtd ?? ''}"></div>
+    </div>
+    <div class="hint" id="prev"></div>
+    <label>Notas</label>
+    <input id="f-notas" value="${esc(e?.notas)}" autocomplete="off">
+    <button class="btn" data-a="save-reg">${e ? 'Guardar alterações' : 'Guardar registo'}</button>
+    ${e ? '<button class="btn ghost" data-a="cancel-reg">Cancelar</button>' : ''}
+  </div>`;
+}
+
+function tabHist(v) {
+  const regs = db.registos.filter(r => r.vid === v.id).sort((a, b) => b.dt.localeCompare(a.dt));
+  if (!regs.length) return `<div class="glass empty">${ic('i-list')}<div style="margin-top:8px">Sem abastecimentos nem carregamentos.<br>Usa o separador Registar.</div></div>`;
+  const groups = {};
+  regs.forEach(r => { const m = r.dt.slice(0, 7); (groups[m] = groups[m] || []).push(r); });
+  return Object.keys(groups).sort().reverse().map(m =>
+    `<div class="hmonth">${mesNome(m)}</div><div class="glass" style="padding:4px 14px">${groups[m].map(itemReg).join('')}</div>`).join('');
+}
+
+function itemReg(r) {
+  const un = r.tipo === 'comb' ? 'L' : 'kWh', col = r.tipo === 'comb' ? 'var(--cy)' : 'var(--gr)';
+  const d = new Date(r.dt);
+  return `<div class="hist-item" style="--c:${col}">
+    <div class="hi-ic">${ic(r.tipo === 'comb' ? 'i-pump' : 'i-bolt')}</div>
+    <div class="grow"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.local) || 'Sem local'}</div>
+      <div class="mut">${d.toLocaleDateString('pt-PT', {day:'2-digit', month:'short'})} ${d.toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'})} · ${n(r.qtd)} ${un} · ${n(r.valor / r.qtd, 3)} €/${un}</div></div>
+    <div style="text-align:right"><div style="font-weight:700">${eur(r.valor)}</div>
+      <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:4px">
+        <button class="ibtn sm" data-a="edit-reg" data-id="${r.id}" aria-label="Editar">${ic('i-edit')}</button>
+        <button class="ibtn sm" data-a="del-reg" data-id="${r.id}" aria-label="Apagar" style="color:var(--rd)">${ic('i-trash')}</button>
+      </div></div>
+  </div>`;
+}
+
+function updPrev() {
+  const el = $('#prev'); if (!el) return;
+  const val = +$v('f-valor'), q = +$v('f-qtd'), un = $v('f-tipo') === 'comb' ? 'L' : 'kWh';
+  el.textContent = (val > 0 && q > 0) ? `Preço: ${n(val / q, 3)} €/${un}` : '';
+}
+
+/* ---------- ações ---------- */
+function saveReg() {
+  const data = $v('f-data'), hora = $v('f-hora');
+  const valor = +$v('f-valor'), qtd = +$v('f-qtd');
+  if (!data || !hora) { toast('Indica a data e a hora'); return; }
+  if (!(valor > 0) || !(qtd > 0)) { toast('Indica o valor pago e a quantidade'); return; }
+  const rec = {id: ui.editReg || uid(), vid: ui.vid, tipo: $v('f-tipo'), dt: `${data}T${hora}`,
+    local: $v('f-local').trim(), valor, qtd, notas: $v('f-notas').trim()};
+  db.registos = ui.editReg ? db.registos.map(r => r.id === ui.editReg ? rec : r) : [...db.registos, rec];
+  save();
+  ui.editReg = null; ui.tab = 'hist';
+  toast('Registo guardado'); render(); window.scrollTo(0, 0);
+}
+
+function saveKm() {
+  const a = $v('f-kini'), b = $v('f-kfim');
+  if (a === '' && b === '') { toast('Indica pelo menos um valor'); return; }
+  const ini = a === '' ? null : +a, fim = b === '' ? null : +b;
+  if (ini != null && fim != null && fim < ini) { toast('O km do fim tem de ser maior que o do início'); return; }
+  const ex = db.kms.find(x => x.vid === ui.vid && x.mes === ui.mes);
+  if (ex) { ex.ini = ini; ex.fim = fim; }
+  else db.kms.push({id: uid(), vid: ui.vid, mes: ui.mes, ini, fim});
+  save(); toast('Leituras guardadas'); render();
+}
+
+function openVeicSheet(id) {
+  const v = id ? veic(id) : {nome: '', marca: '', tipo: 'comb', consRef: '', cor: CORES[0]};
+  ui.sheet = {id: id || null};
+  $('#sheet').innerHTML = `<div class="sheet-card" role="dialog">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <h2>${id ? 'Editar veículo' : 'Novo veículo'}</h2>
+      <button class="ibtn sm" data-a="close-sheet" aria-label="Fechar">${ic('i-x')}</button></div>
+    <label>Nome</label>
+    <input id="f-vnome" value="${esc(v.nome)}" placeholder="ex: Golf, Zoe, Corsa" autocomplete="off">
+    <label>Marca / modelo</label>
+    <input id="f-vmarca" value="${esc(v.marca)}" placeholder="ex: Volkswagen Golf 1.6 TDI" autocomplete="off">
+    <label>Tipo de motor</label>
+    <div class="seg">${Object.entries(TIPOS).map(([k, l]) => `<button type="button" data-vtipo="${k}" class="${k === v.tipo ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <input type="hidden" id="f-vtipo" value="${v.tipo}">
+    <label id="l-vcons">${consLabel(v.tipo)}</label>
+    <input id="f-vcons" type="number" step="0.1" min="0" inputmode="decimal" value="${v.consRef}" placeholder="ex: 5.5">
+    <div class="hint" id="h-vcons">${consHint(v.tipo)}</div>
+    <label>Cor</label>
+    <div class="swatches">${CORES.map(c => `<button type="button" class="sw ${c === v.cor ? 'on' : ''}" style="--sc:${c}" data-cor="${c}" aria-label="Cor"></button>`).join('')}</div>
+    <input type="hidden" id="f-vcor" value="${v.cor}">
+    <button class="btn" data-a="save-veic">Guardar</button>
+    ${id ? '<button class="btn danger" data-a="del-veic">Apagar veículo</button>' : ''}
+  </div>`;
+  $('#sheet').classList.remove('hidden');
+}
+function consLabel(t) { return t === 'elet' ? 'Equivalente em combustão (L/100 km)' : 'Consumo de referência (L/100 km)'; }
+function consHint(t) {
+  return t === 'elet'
+    ? 'Um elétrico não tem litros, por isso este valor é o consumo de um carro a combustão equivalente. Serve de base à poupança.'
+    : 'Usado só quando não há abastecimentos no mês para medir o consumo real.';
+}
+
+function saveVeic() {
+  const nome = $v('f-vnome').trim();
+  if (!nome) { toast('Indica o nome do veículo'); return; }
+  const cons = +$v('f-vcons');
+  if (!(cons > 0)) { toast('Indica o consumo de referência'); return; }
+  const dados = {nome, marca: $v('f-vmarca').trim(), tipo: $v('f-vtipo'), consRef: cons, cor: $v('f-vcor')};
+  if (ui.sheet.id) {
+    Object.assign(veic(ui.sheet.id), dados);
+    toast('Veículo atualizado');
+  } else {
+    const v = {id: uid(), ...dados};
+    db.veiculos.push(v);
+    ui.view = 'veh'; ui.vid = v.id; ui.tab = 'reg'; ui.mes = mesAtual(); ui.tipoReg = null;
+    toast('Veículo adicionado');
+  }
+  save(); closeSheet(); render(); window.scrollTo(0, 0);
+}
+
+function delVeic() {
+  const id = ui.sheet.id;
+  if (!confirm('Apagar este veículo e todos os seus registos e leituras de km?')) return;
+  db.veiculos = db.veiculos.filter(v => v.id !== id);
+  db.registos = db.registos.filter(r => r.vid !== id);
+  db.kms = db.kms.filter(k => k.vid !== id);
+  save(); ui.view = 'home'; closeSheet(); render();
+}
+
+function openBackup() {
+  ui.sheet = {backup: true};
+  $('#sheet').innerHTML = `<div class="sheet-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <h2>Definições</h2><button class="ibtn sm" data-a="close-sheet" aria-label="Fechar">${ic('i-x')}</button></div>
+    <label>Preço padrão do combustível (€/L)</label>
+    <input id="f-pdef" type="number" step="0.001" inputmode="decimal" value="${db.precoDef}">
+    <div class="hint">Usado só quando um veículo não tem abastecimentos de combustível em todo o histórico.</div>
+    <button class="btn" data-a="save-pdef">Guardar preço padrão</button>
+    <div class="hmonth">Google Sheets</div>
+    <div class="hint">Os dados são copiados automaticamente para uma folha "Garagem" na tua conta Google. Só precisas de configurar o Client ID uma vez (ver README).</div>
+    <label>OAuth Client ID</label>
+    <input id="f-gsid" value="${esc(db.gs?.clientId || '')}" placeholder="xxxx.apps.googleusercontent.com" autocomplete="off">
+    <button class="btn ghost" data-a="gs-save-id">Guardar Client ID</button>
+    ${db.gs?.clientId ? (gsToken
+      ? `<button class="btn" data-a="gs-sync">Sincronizar agora</button><button class="btn ghost" data-a="gs-off">Desligar</button>`
+      : `<button class="btn" data-a="gs-connect">Ligar ao Google</button>`) : ''}
+    <div class="hint">${gsStatus()}</div>
+    <div class="hmonth">Backup</div>
+    <button class="btn ghost" data-a="export">${ic('i-up')} Exportar dados</button>
+    <label class="btn ghost" style="cursor:pointer;margin-top:10px">${ic('i-down')} Importar dados
+      <input type="file" id="f-imp" accept=".json,application/json" class="hidden"></label>
+    <button class="btn danger" data-a="clear-all">Apagar todos os dados</button>
+  </div>`;
+  $('#sheet').classList.remove('hidden');
+}
+
+function importar(inp) {
+  const f = inp.files[0]; if (!f) return;
+  f.text().then(t => {
+    const j = JSON.parse(t);
+    if (!Array.isArray(j.veiculos) || !Array.isArray(j.registos)) throw new Error('ficheiro inválido');
+    const novos = (arr, base) => { const ids = new Set(base.map(x => x.id)); return arr.filter(x => x && !ids.has(x.id)); };
+    const nv = novos(j.veiculos, db.veiculos), nr = novos(j.registos, db.registos), nk = novos(j.kms || [], db.kms);
+    db.veiculos.push(...nv); db.registos.push(...nr); db.kms.push(...nk);
+    save(); closeSheet(); render();
+    toast(`Importados ${nv.length} veículos e ${nr.length} registos`);
+  }).catch(err => toast('Erro: ' + err.message));
+  inp.value = '';
+}
+
+function exportar() {
+  const blob = new Blob([JSON.stringify(db, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'garagem-backup-' + hoje().data + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ---------- Google Sheets ---------- */
+let gsToken = null, gsTokenClient = null, gsTimer = null, gsBusy = false, gsPending = false, gsLast = null;
+function gsStatus() {
+  if (gsToken) return `Ligado${gsLast ? ' · última sincronização às ' + gsLast : ''}. As alterações são enviadas automaticamente.`;
+  if (db.gs?.clientId) return 'Client ID guardado. Toca em "Ligar ao Google" para autorizar (ou volta a ligar após reabrir a app).';
+  return 'Preenche o Client ID para ativar a sincronização.';
+}
+function gsConnect() {
+  const cid = db.gs?.clientId;
+  if (!cid) { toast('Falta o Client ID'); return; }
+  if (!window.google?.accounts?.oauth2) { toast('Google não carregou. Verifica a ligação.'); return; }
+  gsTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: cid,
+    scope: 'https://www.googleapis.com/auth/spreadsheets',
+    callback: r => {
+      if (r.error || !r.access_token) { toast('Autorização cancelada'); return; }
+      gsToken = r.access_token;
+      db.gs = Object.assign({}, db.gs, {ok: true}); save();
+      toast('Ligado ao Google');
+      if (ui.sheet?.backup) openBackup();
+      sincronizar(true);
+    }
+  });
+  gsTokenClient.requestAccessToken({prompt: db.gs?.ok ? '' : 'consent'});
+}
+function scheduleSync() {
+  if (!gsToken) return;
+  clearTimeout(gsTimer);
+  gsTimer = setTimeout(() => sincronizar(false), 2000);
+}
+async function gsFetch(url, opt = {}) {
+  const r = await fetch(url, {...opt, headers: {Authorization: 'Bearer ' + gsToken, 'Content-Type': 'application/json'}});
+  if (r.status === 401) { gsToken = null; throw new Error('sessao'); }
+  if (!r.ok) throw new Error('HTTP ' + r.status + ': ' + (await r.text()).slice(0, 150));
+  return r.json();
+}
+async function sincronizar(verbose) {
+  if (!gsToken) return;
+  if (gsBusy) { gsPending = true; return; }
+  gsBusy = true;
+  try {
+    db.gs = db.gs || {};
+    if (!db.gs.sheetId) {
+      const s = await gsFetch('https://sheets.googleapis.com/v4/spreadsheets', {method: 'POST', body: JSON.stringify({
+        properties: {title: 'Garagem'},
+        sheets: ['Veiculos', 'Registos', 'Km'].map(t => ({properties: {title: t}}))})});
+      db.gs.sheetId = s.spreadsheetId; save();
+    }
+    const nomeV = id => veic(id)?.nome || '(apagado)';
+    const data = {
+      Veiculos: [['Nome', 'Marca', 'Tipo', 'Consumo referência (L/100 km)'],
+        ...db.veiculos.map(v => [v.nome, v.marca, TIPOS[v.tipo], v.consRef])],
+      Registos: [['Data', 'Hora', 'Veículo', 'Tipo', 'Local', 'Valor (€)', 'Quantidade', 'Preço unitário (€)', 'Notas', 'ID'],
+        ...[...db.registos].sort((a, b) => a.dt.localeCompare(b.dt)).map(r => [
+          r.dt.slice(0, 10), r.dt.slice(11, 16), nomeV(r.vid), r.tipo === 'comb' ? 'Combustível' : 'Elétrico',
+          r.local, r.valor, r.qtd, +(r.valor / r.qtd).toFixed(3), r.notas, r.id])],
+      Km: [['Veículo', 'Mês', 'Km início', 'Km fim', 'Km percorridos'],
+        ...[...db.kms].sort((a, b) => a.mes.localeCompare(b.mes)).map(k => [
+          nomeV(k.vid), k.mes, k.ini ?? '', k.fim ?? '', (k.ini != null && k.fim != null) ? k.fim - k.ini : ''])]
+    };
+    const base = `https://sheets.googleapis.com/v4/spreadsheets/${db.gs.sheetId}/values`;
+    await gsFetch(base + ':batchClear', {method: 'POST', body: JSON.stringify({ranges: Object.keys(data).map(t => `${t}!A:Z`)})});
+    await gsFetch(base + ':batchUpdate', {method: 'POST', body: JSON.stringify({valueInputOption: 'USER_ENTERED',
+      data: Object.entries(data).map(([t, values]) => ({range: `${t}!A1`, values}))})});
+    gsLast = new Date().toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'});
+    if (verbose) toast('Sincronizado com Google Sheets');
+  } catch (e) {
+    toast(e.message === 'sessao' ? 'Sessão Google expirou. Volta a ligar.' : 'Erro ao sincronizar');
+    console.error(e);
+  } finally {
+    gsBusy = false;
+    if (ui.sheet?.backup) openBackup();
+    if (gsPending) { gsPending = false; scheduleSync(); }
+  }
+}
+
+function closeSheet() { $('#sheet').classList.add('hidden'); $('#sheet').innerHTML = ''; ui.sheet = null; }
+
+let toastT;
+function toast(m) {
+  const t = $('#toast'); t.textContent = m; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+/* ---------- eventos ---------- */
+document.addEventListener('click', e => {
+  const t = e.target;
+  if (t.id === 'sheet') { closeSheet(); return; }
+  let el;
+  if ((el = t.closest('[data-vtipo]'))) {
+    $('#f-vtipo').value = el.dataset.vtipo;
+    document.querySelectorAll('[data-vtipo]').forEach(b => b.classList.toggle('on', b === el));
+    $('#l-vcons').textContent = consLabel(el.dataset.vtipo);
+    $('#h-vcons').textContent = consHint(el.dataset.vtipo);
+    return;
+  }
+  if ((el = t.closest('[data-cor]'))) {
+    $('#f-vcor').value = el.dataset.cor;
+    document.querySelectorAll('[data-cor]').forEach(b => b.classList.toggle('on', b === el));
+    return;
+  }
+  if ((el = t.closest('[data-tipo]'))) {
+    ui.tipoReg = el.dataset.tipo;
+    $('#f-tipo').value = el.dataset.tipo;
+    document.querySelectorAll('[data-tipo]').forEach(b => b.classList.toggle('on', b === el));
+    $('#l-qtd').textContent = el.dataset.tipo === 'comb' ? 'Litros' : 'kWh';
+    updPrev();
+    return;
+  }
+  if ((el = t.closest('[data-edit-veh]'))) { e.stopPropagation(); openVeicSheet(el.dataset.editVeh); return; }
+  if ((el = t.closest('[data-open]'))) {
+    Object.assign(ui, {view: 'veh', vid: el.dataset.open, tab: 'res', mes: mesAtual(), editReg: null, tipoReg: null});
+    render(); window.scrollTo(0, 0); return;
+  }
+  if ((el = t.closest('[data-tab]'))) {
+    ui.tab = el.dataset.tab; ui.editReg = null;
+    render(); window.scrollTo(0, 0); return;
+  }
+  if (!(el = t.closest('[data-a]'))) return;
+  const id = el.dataset.id;
+  switch (el.dataset.a) {
+    case 'home': ui.view = 'home'; ui.editReg = null; render(); window.scrollTo(0, 0); break;
+    case 'backup': openBackup(); break;
+    case 'novo-veic': openVeicSheet(null); break;
+    case 'edit-veh-cur': openVeicSheet(ui.vid); break;
+    case 'close-sheet': closeSheet(); break;
+    case 'save-veic': saveVeic(); break;
+    case 'del-veic': delVeic(); break;
+    case 'mes-prev': ui.mes = addMes(ui.mes, -1); render(); break;
+    case 'mes-next': ui.mes = addMes(ui.mes, 1); render(); break;
+    case 'save-km': saveKm(); break;
+    case 'save-reg': saveReg(); break;
+    case 'cancel-reg': ui.editReg = null; render(); break;
+    case 'edit-reg': ui.editReg = id; ui.tab = 'reg'; render(); window.scrollTo(0, 0); break;
+    case 'del-reg':
+      if (confirm('Apagar este registo?')) { db.registos = db.registos.filter(r => r.id !== id); save(); render(); }
+      break;
+    case 'gs-save-id':
+      db.gs = Object.assign({}, db.gs, {clientId: $v('f-gsid').trim()});
+      save(); openBackup(); toast('Client ID guardado'); break;
+    case 'gs-connect': gsConnect(); break;
+    case 'gs-sync': sincronizar(true); break;
+    case 'gs-off': gsToken = null; openBackup(); toast('Sincronização desligada'); break;
+    case 'save-pdef': db.precoDef = +$v('f-pdef') || PRECO_DEF; save(); closeSheet(); render(); toast('Preço padrão guardado'); break;
+    case 'export': exportar(); break;
+    case 'clear-all':
+      if (confirm('Apagar TODOS os veículos e registos? Não dá para desfazer.')) {
+        db = {veiculos: [], registos: [], kms: [], precoDef: db.precoDef};
+        save(); ui.view = 'home'; closeSheet(); render();
+      }
+      break;
+  }
+});
+document.addEventListener('input', e => { if (e.target.id === 'f-valor' || e.target.id === 'f-qtd') updPrev(); });
+document.addEventListener('change', e => { if (e.target.id === 'f-imp') importar(e.target); });
+
+/* ---------- arranque ---------- */
+save();
+render();
+</script>
+</body>
+</html>
