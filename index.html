@@ -171,7 +171,7 @@ function calcMes(vid, mes) {
   const precoM = lit > 0 ? gComb / lit : precoMedio(vid);            // média do mês (€ total / L total)
   const consComb = (km && lit > 0) ? lit / km * 100 : null;           // L/100 km medido no mês
   const consElet = (km && kwh > 0) ? kwh / km * 100 : null;           // kWh/100 km medido no mês
-  const consUsado = consComb ?? v.consRef;                            // o que entra no cálculo hipotético
+  const consUsado = (v.tipo === 'comb' && consComb != null) ? consComb : v.consRef;                            // o que entra no cálculo hipotético
   const eq = km != null ? km * consUsado / 100 * precoM : null;       // custo se tudo fosse combustível
   const pou = eq != null ? eq - tot : null;
   return {regs, gComb, lit, gEl, kwh, tot, k, km, precoM, consComb, consElet, consUsado, eq, pou, custoKm: km ? tot / km : null};
@@ -245,14 +245,14 @@ function tabRes(v) {
   </div>`;
   const det = `<div class="glass" style="margin-top:14px">
     <div class="row"><span>Preço médio do combustível (mês)</span><b>${n(c.precoM, 3)} €/L</b></div>
-    <div class="row"><span>Consumo usado no cálculo</span><b>${n(c.consUsado, 1)} L/100 km${c.consComb == null ? ' (ref.)' : ''}</b></div>
+    <div class="row"><span>Consumo usado no cálculo</span><b>${n(c.consUsado, 1)} L/100 km${c.consUsado !== c.consComb ? ' (ref.)' : ''}</b></div>
     <div class="row"><span>Se fosse tudo combustível</span><b>${c.eq == null ? '—' : eur(c.eq)}</b></div>
   </div>`;
   const ms = [-5, -4, -3, -2, -1, 0].map(d => addMes(ui.mes, d));
   const vals = ms.map(m => calcMes(v.id, m).tot), max = Math.max(...vals, 1);
   const bars = `<div class="glass"><div class="kv">Gasto nos últimos 6 meses</div><div class="bars">${ms.map((m, i) =>
     `<div class="bar ${m === ui.mes ? 'on' : ''}"><span>${Math.round(vals[i])}€</span><i style="height:${Math.max(vals[i] / max * 100, 2)}%"></i>${mesCurto(m)}</div>`).join('')}</div></div>`;
-  const nota = `<p class="mut" style="margin:4px 6px 0">Poupança = km × consumo médio × preço médio do combustível do mês − gasto real. Sem abastecimentos no mês, usa o consumo de referência e o preço histórico do veículo.</p>`;
+  const nota = `<p class="mut" style="margin:4px 6px 0">Poupança = km do mês × consumo de referência × preço médio do combustível desse mês − gasto real. Em veículos a combustão, o consumo usado é o medido nos abastecimentos.</p>`;
   return hero + tiles + det + bars + nota;
 }
 
