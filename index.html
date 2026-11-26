@@ -170,18 +170,43 @@ function kmAnterior(vid, mes) {
   return k ? k.fim : null;
 }
 // Consumo elétrico medido (kWh/100 km), só com meses em que houve carregamentos e nenhum abastecimento
+// Um mês é "só elétrico" se tem carregamentos e nenhum abastecimento; "só combustão" é o inverso.
+// Os meses mistos não entram em nenhum consumo, porque não se sabe quantos km foram em cada modo.
+function tipoMes(vid, mes) {
+  const regs = db.registos.filter(r => r.vid === vid && r.dt.startsWith(mes));
+  const c = regs.some(r => r.tipo === 'comb'), e = regs.some(r => r.tipo === 'elet');
+  if (c && e) return 'misto';
+  if (e) return 'elet';
+  if (c) return 'comb';
+  return 'vazio';
+}
+
+// kWh/100 km medido, só com meses "só elétrico" e leituras de km completas
 function consEletMedido(vid) {
   const meses = [...new Set(db.registos.filter(r => r.vid === vid).map(r => r.dt.slice(0, 7)))];
   let kwh = 0, km = 0;
   for (const m of meses) {
-    const regs = db.registos.filter(r => r.vid === vid && r.dt.startsWith(m));
-    if (regs.some(r => r.tipo === 'comb') || !regs.some(r => r.tipo === 'elet')) continue;
+    if (tipoMes(vid, m) !== 'elet') continue;
     const k = db.kms.find(x => x.vid === vid && x.mes === m);
     if (!k || k.ini == null || k.fim == null || k.fim <= k.ini) continue;
-    kwh += sum(regs.filter(r => r.tipo === 'elet'), 'qtd');
+    kwh += sum(db.registos.filter(r => r.vid === vid && r.dt.startsWith(m) && r.tipo === 'elet'), 'qtd');
     km += k.fim - k.ini;
   }
   return km > 0 ? kwh / km * 100 : null;
+}
+
+// L/100 km medido, só com meses "só combustão" e leituras de km completas
+function consCombMedido(vid) {
+  const meses = [...new Set(db.registos.filter(r => r.vid === vid).map(r => r.dt.slice(0, 7)))];
+  let lit = 0, km = 0;
+  for (const m of meses) {
+    if (tipoMes(vid, m) !== 'comb') continue;
+    const k = db.kms.find(x => x.vid === vid && x.mes === m);
+    if (!k || k.ini == null || k.fim == null || k.fim <= k.ini) continue;
+    lit += sum(db.registos.filter(r => r.vid === vid && r.dt.startsWith(m) && r.tipo === 'comb'), 'qtd');
+    km += k.fim - k.ini;
+  }
+  return km > 0 ? lit / km * 100 : null;
 }
 
 // Cálculo mensal
@@ -193,19 +218,22 @@ function calcMes(vid, mes) {
   const tot = gComb + gEl;
   const k = db.kms.find(x => x.vid === vid && x.mes === mes);
   const km = (k && k.ini != null && k.fim != null) ? k.fim - k.ini : null;
+  const tipo = tipoMes(vid, mes);
+  const misto = tipo === 'misto';
   const precoM = lit > 0 ? gComb / lit : precoMedio(vid);            // média do mês (€ total / L total)
-  const consComb = (km && lit > 0) ? lit / km * 100 : null;           // L/100 km medido no mês
-  const consElet = (km && kwh > 0) ? kwh / km * 100 : null;           // kWh/100 km medido no mês
-  const consUsado = (v.tipo === 'comb' && consComb != null) ? consComb : v.consRef;                            // o que entra no cálculo hipotético
-  // Km feitos em elétrico: no mês só com carregamentos é tudo; no resto, kWh ÷ consumo medido (limitado aos km do mês)
+
+  // consumos só com meses "puros" e leituras de km; no mês misto ficam null
+  const consComb = (tipo === 'comb' && km) ? lit / km * 100 : null;
+  const consElet = (tipo === 'elet' && km) ? kwh / km * 100 : null;
+
+  // poupança: só com consumo elétrico medido (histórico) e mês só de carregamentos com km
   const consEl = consEletMedido(vid);
-  const soEl = cb.length === 0 && el.length > 0 && km != null;
-  const kmEl = soEl ? km : (consEl && kwh > 0 && km != null) ? Math.min(km, kwh / consEl * 100) : null;
-  const eq = kmEl != null ? kmEl * v.consRef / 100 * precoM : null;   // custo desses km a combustível
-  const pouBruta = eq != null ? eq - gEl : null;
-  const pouNova = pouBruta != null ? Math.max(0, pouBruta) : null;     // nunca negativa       // custo se tudo fosse combustível
-  const pou = pouNova;
-  return {regs, gComb, lit, gEl, kwh, tot, k, km, precoM, consComb, consElet, consUsado, consEl, kmEl, eq, pou, custoKm: km ? tot / km : null};
+  const kmEl = (tipo === 'elet' && km != null && consEl != null) ? km : null;
+  const eq = kmEl != null && v.consRef ? kmEl * v.consRef / 100 * precoM : null;   // custo desses km a combustível
+  const pou = (eq != null) ? Math.max(0, eq - gEl) : null;                           // nunca negativa
+
+  return {regs, gComb, lit, gEl, kwh, tot, k, km, tipo, misto, precoM, consComb, consElet, consEl, kmEl, eq, pou,
+    custoKm: km ? tot / km : null};
 }
 
 /* ---------- ecrãs ---------- */
@@ -260,12 +288,22 @@ function viewVeic() {
 /* ---------- separadores ---------- */
 function tabRes(v) {
   const c = calcMes(v.id, ui.mes), semKm = c.km == null;
-  const hero = semKm
-    ? `<div class="notice">${ic('i-gauge')}<div>Falta o <b>km</b> deste mês. Vai ao separador <b>Km</b> e introduz o início e o fim do mês para ver consumo e poupança.</div></div>`
+  // explica porque não há poupança, em vez de mostrar 0
+  let motivo;
+  if (semKm) motivo = 'Falta o km deste mês (separador Km: início e fim).';
+  else if (c.misto) motivo = 'Mês com gasolina e elétrico. Não dá para separar os km de cada modo, por isso a poupança não é calculada.';
+  else if (c.tipo === 'comb') motivo = 'Mês só com gasolina. A poupança só existe para km feitos em elétrico.';
+  else if (c.tipo === 'vazio') motivo = 'Ainda não há registos neste mês.';
+  else if (c.consEl == null) motivo = 'Ainda falta histórico elétrico: precisas de pelo menos um mês só de carregamentos com início e fim de km.';
+  const hero = motivo
+    ? `<div class="notice">${ic('i-gauge')}<div>${motivo}</div></div>`
     : `<div class="glass hero"><div class="kv">Poupança do mês</div>
-        <div class="big ${c.pou >= 0 ? 'good' : 'bad'}">${c.pou >= 0 ? '+' : ''}${eur(c.pou)}</div>
-        <div class="mut">${c.kmEl != null ? `Fizeste ${n(c.kmEl, 0)} km em elétrico. A esses km, a combustível custavam ${eur(c.eq)} e a eletricidade custou ${eur(c.gEl)}.` : 'Sem carregamentos neste mês, não há poupança para calcular.'}</div></div>`;
-  const consTxt = c.consComb != null ? `${n(c.consComb, 1)} L/100 km` : c.consElet != null ? `${n(c.consElet, 1)} kWh/100 km` : '—';
+        <div class="big good">${eur(c.pou)}</div>
+        <div class="mut">Fizeste ${n(c.kmEl, 0)} km em elétrico. A esses km, a combustível custavam ${eur(c.eq)}. Pagaste ${eur(c.gEl)} de eletricidade.</div></div>`;
+  const consTxt = c.misto ? 'não calculável (mês misto)'
+    : c.consComb != null ? `${n(c.consComb, 1)} L/100 km`
+    : c.consElet != null ? `${n(c.consElet, 1)} kWh/100 km`
+    : '—';
   const tiles = `<div class="grid2">
     <div class="tile"><div class="kv">Gasto total</div><div class="big">${eur(c.tot)}</div></div>
     <div class="tile"><div class="kv">Km percorridos</div><div class="big">${semKm ? '—' : n(c.km, 0) + ' km'}</div></div>
@@ -276,8 +314,8 @@ function tabRes(v) {
   </div>`;
   const det = `<div class="glass" style="margin-top:14px">
     <div class="row"><span>Preço médio do combustível (mês)</span><b>${n(c.precoM, 3)} €/L</b></div>
-    <div class="row"><span>Consumo usado no cálculo</span><b>${n(c.consUsado, 1)} L/100 km${c.consUsado !== c.consComb ? ' (ref.)' : ''}</b></div>
     <div class="row"><span>Km feitos em elétrico</span><b>${c.kmEl == null ? '—' : n(c.kmEl, 0) + ' km'}</b></div>
+    <div class="row"><span>Consumo elétrico medido (histórico)</span><b>${c.consEl == null ? '—' : n(c.consEl, 1) + ' kWh/100 km'}</b></div>
     <div class="row"><span>Custo desses km a combustível</span><b>${c.eq == null ? '—' : eur(c.eq)}</b></div>
     <div class="row"><span>Custo real da eletricidade</span><b>${eur(c.gEl)}</b></div>
   </div>`;
@@ -285,8 +323,8 @@ function tabRes(v) {
   const vals = ms.map(m => calcMes(v.id, m).tot), max = Math.max(...vals, 1);
   const bars = `<div class="glass"><div class="kv">Gasto nos últimos 6 meses</div><div class="bars">${ms.map((m, i) =>
     `<div class="bar ${m === ui.mes ? 'on' : ''}"><span>${Math.round(vals[i])}€</span><i style="height:${Math.max(vals[i] / max * 100, 2)}%"></i>${mesCurto(m)}</div>`).join('')}</div></div>`;
-  const nota = `<p class="mut" style="margin:4px 6px 0">Poupança = (km feitos em elétrico × consumo de referência × preço médio da gasolina do mês) − custo real da eletricidade. Os km elétricos são estimados a partir dos kWh carregados e do consumo elétrico medido. A gasolina não entra na conta e a poupança nunca fica negativa.</p>`;
-  const pous = ms.map(m => { const r = calcMes(v.id, m); return r.km ? r.pou : null; });
+  const nota = `<p class="mut" style="margin:4px 6px 0">Poupança = km feitos em elétrico × consumo de referência × preço médio da gasolina do mês − custo real da eletricidade. Só é calculada em meses só de carregamentos com início e fim de km. Meses com gasolina e elétrico não têm consumo nem poupança, porque não se sabe quantos km foram em cada modo.</p>`;
+  const pous = ms.map(m => { const r = calcMes(v.id, m); return r.pou; });
   const pMax = Math.max(...pous.map(p => Math.abs(p ?? 0)), 1);
   const sbars = `<div class="glass" style="margin-top:14px"><div class="kv">Poupança nos últimos 6 meses</div>
     <div class="sbars">${ms.map((m, i) => {
