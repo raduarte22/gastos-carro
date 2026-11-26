@@ -212,6 +212,27 @@ function consCombMedido(vid) {
 // Cálculo mensal
 function calcMes(vid, mes) {
   const v = veic(vid);
+  // Caminho novo: registos com odómetro. Cada segmento termina num registo do mês.
+  const segs = segmentos(vid).filter(s => s.mes === mes);
+  if (segs.length) {
+    const kmC = segs.filter(s => s.tipo === 'comb'), kmE = segs.filter(s => s.tipo === 'elet');
+    const litS = sum(kmC.map(s => ({q: s.fim.qtd})), 'q'), kmCsum = sum(kmC, 'km');
+    const kwhS = sum(kmE.map(s => ({q: s.fim.qtd})), 'q'), kmEsum = sum(kmE, 'km');
+    const regs = db.registos.filter(r => r.vid === vid && r.dt.startsWith(mes));
+    const cb = regs.filter(r => r.tipo === 'comb'), el = regs.filter(r => r.tipo === 'elet');
+    const gComb = sum(cb, 'valor'), gEl = sum(el, 'valor');
+    const lit = sum(cb, 'qtd'), kwh = sum(el, 'qtd'), tot = gComb + gEl;
+    const km = segs.reduce((s, x) => s + x.km, 0);
+    const precoM = lit > 0 ? gComb / lit : precoMedio(vid);
+    const consComb = kmCsum > 0 ? litS / kmCsum * 100 : null;      // L/100 km nos segmentos a gasolina
+    const consElet = kmEsum > 0 ? kwhS / kmEsum * 100 : null;      // kWh/100 km nos segmentos elétricos
+    const eq = kmEsum > 0 ? kmEsum * v.consRef / 100 * precoM : null;
+    const pou = eq != null ? Math.max(0, eq - sum(el, 'valor')) : null;
+    const tipo = (kmC.length && kmE.length) ? 'misto' : kmE.length ? 'elet' : kmC.length ? 'comb' : 'vazio';
+    return {regs, gComb, lit, gEl, kwh, tot, km, tipo, misto: false, precoM, consComb, consElet,
+      consEl: consElet, kmEl: kmEsum || null, eq, pou, custoKm: km ? tot / km : null, origem: 'odometro'};
+  }
+  // Caminho antigo: leituras mensais de início e fim (sem odómetro por registo)
   const regs = db.registos.filter(r => r.vid === vid && r.dt.startsWith(mes));
   const cb = regs.filter(r => r.tipo === 'comb'), el = regs.filter(r => r.tipo === 'elet');
   const gComb = sum(cb, 'valor'), lit = sum(cb, 'qtd'), gEl = sum(el, 'valor'), kwh = sum(el, 'qtd');
@@ -323,7 +344,10 @@ function tabRes(v) {
   const vals = ms.map(m => calcMes(v.id, m).tot), max = Math.max(...vals, 1);
   const bars = `<div class="glass"><div class="kv">Gasto nos últimos 6 meses</div><div class="bars">${ms.map((m, i) =>
     `<div class="bar ${m === ui.mes ? 'on' : ''}"><span>${Math.round(vals[i])}€</span><i style="height:${Math.max(vals[i] / max * 100, 2)}%"></i>${mesCurto(m)}</div>`).join('')}</div></div>`;
-  const nota = `<p class="mut" style="margin:4px 6px 0">Poupança = km feitos em elétrico × consumo de referência × preço médio da gasolina do mês − custo real da eletricidade. Só é calculada em meses só de carregamentos com início e fim de km. Meses com gasolina e elétrico não têm consumo nem poupança, porque não se sabe quantos km foram em cada modo.</p>`;
+  const nota = `<p class="mut" style="margin:4px 6px 0">${c.origem === 'odometro'
+    ? 'Cálculo pelo odómetro de cada registo: os km entre registos são atribuídos ao tipo do registo que os fecha. Um carregamento fecha km elétricos; um abastecimento fecha km a gasolina.'
+    : 'Cálculo pelas leituras mensais de km. Meses com gasolina e elétrico não têm consumo nem poupança. Regista o odómetro em cada abastecimento para ter cálculo em todos os meses.'}
+    Poupança = km elétricos × consumo de referência × preço médio da gasolina do mês − custo real da eletricidade, nunca negativa.</p>`;
   const pous = ms.map(m => { const r = calcMes(v.id, m); return r.pou; });
   const pMax = Math.max(...pous.map(p => Math.abs(p ?? 0)), 1);
   const sbars = `<div class="glass" style="margin-top:14px"><div class="kv">Poupança nos últimos 6 meses</div>
@@ -386,6 +410,8 @@ function tabReg(v) {
       <div><label>Valor pago (€)</label><input id="f-valor" type="number" step="0.01" min="0" inputmode="decimal" value="${e?.valor ?? ''}"></div>
       <div><label id="l-qtd">${tipo === 'comb' ? 'Litros' : 'kWh'}</label><input id="f-qtd" type="number" step="0.01" min="0" inputmode="decimal" value="${e?.qtd ?? ''}"></div>
     </div>
+    <label>Odómetro (km no momento) <span class="mut">— obrigatório</span></label>
+    <input id="f-odo" type="number" step="1" min="0" inputmode="numeric" value="${e?.odo ?? ''}" placeholder="${ultimoOdo(v.id) != null ? 'último: ' + ultimoOdo(v.id) : 'ex: 45230'}">
     <div class="hint" id="prev"></div>
     <label>Notas</label>
     <input id="f-notas" value="${esc(e?.notas)}" autocomplete="off">
@@ -418,6 +444,25 @@ function itemReg(r) {
   </div>`;
 }
 
+// último odómetro registado no veículo (para sugestão)
+function ultimoOdo(vid) {
+  const r = db.registos.filter(x => x.vid === vid && x.odo != null).sort((a, b) => b.dt.localeCompare(a.dt))[0];
+  return r ? r.odo : null;
+}
+
+// Segmentos entre registos consecutivos com odómetro: cada segmento termina num registo.
+// Ex.: se o carregamento de 4 € é o registo que fecha um segmento, os km desse segmento são elétricos.
+function segmentos(vid) {
+  const regs = db.registos.filter(r => r.vid === vid && r.odo != null).sort((a, b) => a.dt.localeCompare(b.dt));
+  const out = [];
+  for (let i = 1; i < regs.length; i++) {
+    const a = regs[i - 1], b = regs[i];
+    const km = b.odo - a.odo;
+    if (km > 0) out.push({km, fim: b, tipo: b.tipo, mes: b.dt.slice(0, 7)});
+  }
+  return out;
+}
+
 function updPrev() {
   const el = $('#prev'); if (!el) return;
   const val = +$v('f-valor'), q = +$v('f-qtd'), un = $v('f-tipo') === 'comb' ? 'L' : 'kWh';
@@ -427,11 +472,19 @@ function updPrev() {
 /* ---------- ações ---------- */
 function saveReg() {
   const data = $v('f-data'), hora = $v('f-hora');
-  const valor = +$v('f-valor'), qtd = +$v('f-qtd');
+  const valor = +$v('f-valor'), qtd = +$v('f-qtd'), odo = +$v('f-odo');
   if (!data || !hora) { toast('Indica a data e a hora'); return; }
   if (!(valor > 0) || !(qtd > 0)) { toast('Indica o valor pago e a quantidade'); return; }
-  const rec = {id: ui.editReg || uid(), vid: ui.vid, tipo: $v('f-tipo'), dt: `${data}T${hora}`,
-    local: $v('f-local').trim(), valor, qtd, notas: $v('f-notas').trim()};
+  if (!($v('f-odo') !== '' && odo >= 0)) { toast('Indica o odómetro (km no momento)'); return; }
+  const dt = `${data}T${hora}`;
+  // o odómetro tem de ser coerente com os registos vizinhos (sem recuar no tempo)
+  const outros = db.registos.filter(r => r.vid === ui.vid && r.id !== ui.editReg && r.odo != null);
+  const antes = outros.filter(r => r.dt <= dt).sort((a, b) => b.dt.localeCompare(a.dt))[0];
+  const depois = outros.filter(r => r.dt >= dt).sort((a, b) => a.dt.localeCompare(b.dt))[0];
+  if (antes && odo < antes.odo) { toast(`O odómetro não pode ser menor que ${antes.odo} km (registo anterior)`); return; }
+  if (depois && odo > depois.odo) { toast(`O odómetro não pode ser maior que ${depois.odo} km (registo seguinte)`); return; }
+  const rec = {id: ui.editReg || uid(), vid: ui.vid, tipo: $v('f-tipo'), dt,
+    local: $v('f-local').trim(), valor, qtd, odo, notas: $v('f-notas').trim()};
   db.registos = ui.editReg ? db.registos.map(r => r.id === ui.editReg ? rec : r) : [...db.registos, rec];
   save();
   ui.editReg = null; ui.tab = 'hist';
