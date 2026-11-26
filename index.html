@@ -212,22 +212,27 @@ function consCombMedido(vid) {
 // Cálculo mensal
 function calcMes(vid, mes) {
   const v = veic(vid);
-  // Caminho novo: registos com odómetro. Cada segmento termina num registo do mês.
+  // Caminho novo: segmentos atribuídos ao registo que os inicia (ver segmentos()).
   const segs = segmentos(vid).filter(s => s.mes === mes);
   if (segs.length) {
-    const kmC = segs.filter(s => s.tipo === 'comb'), kmE = segs.filter(s => s.tipo === 'elet');
-    const litS = sum(kmC.map(s => ({q: s.fim.qtd})), 'q'), kmCsum = sum(kmC, 'km');
-    const kwhS = sum(kmE.map(s => ({q: s.fim.qtd})), 'q'), kmEsum = sum(kmE, 'km');
     const regs = db.registos.filter(r => r.vid === vid && r.dt.startsWith(mes));
     const cb = regs.filter(r => r.tipo === 'comb'), el = regs.filter(r => r.tipo === 'elet');
     const gComb = sum(cb, 'valor'), gEl = sum(el, 'valor');
     const lit = sum(cb, 'qtd'), kwh = sum(el, 'qtd'), tot = gComb + gEl;
-    const km = segs.reduce((s, x) => s + x.km, 0);
     const precoM = lit > 0 ? gComb / lit : precoMedio(vid);
-    const consComb = kmCsum > 0 ? litS / kmCsum * 100 : null;      // L/100 km nos segmentos a gasolina
-    const consElet = kmEsum > 0 ? kwhS / kmEsum * 100 : null;      // kWh/100 km nos segmentos elétricos
+
+    // km e energia do mesmo período: o registo que inicia o segmento
+    const kmC = segs.filter(s => s.tipo === 'comb'), kmE = segs.filter(s => s.tipo === 'elet');
+    const kmCsum = sum(kmC, 'km'), kmEsum = sum(kmE, 'km');
+    const litSeg = sum(kmC.map(s => ({q: s.ini.qtd})), 'q');
+    const kwhSeg = sum(kmE.map(s => ({q: s.ini.qtd})), 'q');
+    const gElSeg = sum(kmE.map(s => ({v: s.ini.valor})), 'v');   // custo da eletricidade desses km
+    const km = kmCsum + kmEsum;
+
+    const consComb = kmCsum > 0 ? litSeg / kmCsum * 100 : null;   // L/100 km nos km a gasolina
+    const consElet = kmEsum > 0 ? kwhSeg / kmEsum * 100 : null;   // kWh/100 km nos km elétricos
     const eq = kmEsum > 0 ? kmEsum * v.consRef / 100 * precoM : null;
-    const pou = eq != null ? Math.max(0, eq - sum(el, 'valor')) : null;
+    const pou = eq != null ? Math.max(0, eq - gElSeg) : null;
     const tipo = (kmC.length && kmE.length) ? 'misto' : kmE.length ? 'elet' : kmC.length ? 'comb' : 'vazio';
     return {regs, gComb, lit, gEl, kwh, tot, km, tipo, misto: false, precoM, consComb, consElet,
       consEl: consElet, kmEl: kmEsum || null, eq, pou, custoKm: km ? tot / km : null, origem: 'odometro'};
@@ -345,7 +350,7 @@ function tabRes(v) {
   const bars = `<div class="glass"><div class="kv">Gasto nos últimos 6 meses</div><div class="bars">${ms.map((m, i) =>
     `<div class="bar ${m === ui.mes ? 'on' : ''}"><span>${Math.round(vals[i])}€</span><i style="height:${Math.max(vals[i] / max * 100, 2)}%"></i>${mesCurto(m)}</div>`).join('')}</div></div>`;
   const nota = `<p class="mut" style="margin:4px 6px 0">${c.origem === 'odometro'
-    ? 'Cálculo pelo odómetro de cada registo: os km entre registos são atribuídos ao tipo do registo que os fecha. Um carregamento fecha km elétricos; um abastecimento fecha km a gasolina.'
+    ? 'Cálculo pelo odómetro de cada registo: os km até ao registo seguinte são atribuídos ao tipo do registo que os inicia. Um carregamento inicia km elétricos; um abastecimento inicia km a gasolina.'
     : 'Cálculo pelas leituras mensais de km. Meses com gasolina e elétrico não têm consumo nem poupança. Regista o odómetro em cada abastecimento para ter cálculo em todos os meses.'}
     Poupança = km elétricos × consumo de referência × preço médio da gasolina do mês − custo real da eletricidade, nunca negativa.</p>`;
   const pous = ms.map(m => { const r = calcMes(v.id, m); return r.pou; });
@@ -450,15 +455,17 @@ function ultimoOdo(vid) {
   return r ? r.odo : null;
 }
 
-// Segmentos entre registos consecutivos com odómetro: cada segmento termina num registo.
-// Ex.: se o carregamento de 4 € é o registo que fecha um segmento, os km desse segmento são elétricos.
+// Segmentos entre registos consecutivos com odómetro.
+// Cada segmento é atribuído ao registo que o INICIA: um carregamento abre um período em elétrico,
+// e um abastecimento abre um período a gasolina. Assim, a energia e os km do mesmo período ficam juntos.
+// O segmento pertence ao mês do registo inicial.
 function segmentos(vid) {
   const regs = db.registos.filter(r => r.vid === vid && r.odo != null).sort((a, b) => a.dt.localeCompare(b.dt));
   const out = [];
-  for (let i = 1; i < regs.length; i++) {
-    const a = regs[i - 1], b = regs[i];
+  for (let i = 0; i < regs.length - 1; i++) {
+    const a = regs[i], b = regs[i + 1];
     const km = b.odo - a.odo;
-    if (km > 0) out.push({km, fim: b, tipo: b.tipo, mes: b.dt.slice(0, 7)});
+    if (km > 0) out.push({km, ini: a, tipo: a.tipo, mes: a.dt.slice(0, 7)});
   }
   return out;
 }
